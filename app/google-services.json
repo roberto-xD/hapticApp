@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "817074232221",
+    "project_id": "hapticcontrol",
+    "storage_bucket": "hapticcontrol.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:817074232221:android:e742475f85c4613b256d74",
+        "android_client_info": {
+          "package_name": "com.smartbe.hapticcontrol"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBq0F9lg8FJNWtObXKnZ5BOf5JHjWEtCBs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
