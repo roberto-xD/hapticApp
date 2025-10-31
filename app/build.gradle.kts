@@ -150,6 +150,8 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-view:$cameraxVersion")
 
+    implementation("androidx.bluetooth:bluetooth:1.0.0-alpha02")
+    implementation("com.juul.kable:core:0.24.0")
 }
 kapt {
     correctErrorTypes = true
