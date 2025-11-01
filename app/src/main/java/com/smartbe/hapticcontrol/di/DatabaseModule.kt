@@ -2,7 +2,7 @@ package com.smartbe.hapticcontrol.di
 
 import android.content.Context
 import androidx.room.Room
-import com.smartbe.hapticcontrol.data.local.dao.DeviceDao
+import com.smartbe.hapticcontrol.data.local.dao.BleDeviceDao
 import com.smartbe.hapticcontrol.data.local.database.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -40,7 +40,7 @@ object DatabaseModule {
      */
     @Provides
     @Singleton
-    fun provideDeviceDao(database: AppDatabase): DeviceDao {
+    fun provideDeviceDao(database: AppDatabase): BleDeviceDao {
         return database.deviceDao()
     }
 }

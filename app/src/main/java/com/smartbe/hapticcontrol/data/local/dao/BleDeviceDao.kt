@@ -5,62 +5,62 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.smartbe.hapticcontrol.data.local.entity.DeviceEntity
+import com.smartbe.hapticcontrol.data.local.entity.BleDeviceEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
  * DAO para operaciones de base de datos de dispositivos BLE
  */
 @Dao
-interface DeviceDao {
+interface BleDeviceDao {
 
     /**
      * Obtiene todos los dispositivos como Flow
      */
     @Query("SELECT * FROM devices ORDER BY last_connection_date DESC")
-    fun observeAllDevices(): Flow<List<DeviceEntity>>
+    fun observeAllDevices(): Flow<List<BleDeviceEntity>>
 
     /**
      * Obtiene el dispositivo favorito como Flow
      */
     @Query("SELECT * FROM devices WHERE is_favorite = 1 LIMIT 1")
-    fun observeFavoriteDevice(): Flow<DeviceEntity?>
+    fun observeFavoriteDevice(): Flow<BleDeviceEntity?>
 
     /**
      * Obtiene todos los dispositivos
      */
     @Query("SELECT * FROM devices ORDER BY last_connection_date DESC")
-    suspend fun getAllDevices(): List<DeviceEntity>
+    suspend fun getAllDevices(): List<BleDeviceEntity>
 
     /**
      * Obtiene un dispositivo por su MAC address
      */
     @Query("SELECT * FROM devices WHERE mac_address = :macAddress")
-    suspend fun getDeviceByMac(macAddress: String): DeviceEntity?
+    suspend fun getDeviceByMac(macAddress: String): BleDeviceEntity?
 
     /**
      * Obtiene el dispositivo favorito
      */
     @Query("SELECT * FROM devices WHERE is_favorite = 1 LIMIT 1")
-    suspend fun getFavoriteDevice(): DeviceEntity?
+    suspend fun getFavoriteDevice(): BleDeviceEntity?
 
     /**
      * Obtiene los dispositivos más recientes limitados
      */
     @Query("SELECT * FROM devices ORDER BY last_connection_date DESC LIMIT :limit")
-    suspend fun getRecentDevices(limit: Int): List<DeviceEntity>
+    suspend fun getRecentDevices(limit: Int): List<BleDeviceEntity>
 
     /**
      * Inserta o actualiza un dispositivo
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertDevice(device: DeviceEntity)
+    suspend fun insertDevice(device: BleDeviceEntity)
 
     /**
      * Actualiza un dispositivo existente
      */
     @Update
-    suspend fun updateDevice(device: DeviceEntity)
+    suspend fun updateDevice(device: BleDeviceEntity)
 
     /**
      * Desmarca todos los dispositivos como no favoritos

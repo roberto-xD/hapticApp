@@ -1,7 +1,7 @@
 package com.smartbe.hapticcontrol.domain.usecase
 
-import com.smartbe.hapticcontrol.domain.model.BleDevice
-import com.smartbe.hapticcontrol.domain.repository.DeviceRepository
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
+import com.smartbe.hapticcontrol.domain.repository.BleRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -9,29 +9,20 @@ import javax.inject.Inject
  * Caso de uso para obtener los dispositivos guardados
  */
 class GetSavedDevicesUseCase @Inject constructor(
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: BleRepository
 ) {
     /**
      * Obtiene un Flow con todos los dispositivos guardados
      *
      * @return Flow que emite la lista de dispositivos
      */
-    operator fun invoke(): Flow<List<BleDevice>> {
-        return deviceRepository.savedDevices
-    }
-
-    /**
-     * Obtiene la lista de dispositivos de forma suspendida
-     *
-     * @return Lista de dispositivos guardados
-     */
-    suspend fun getList(): List<BleDevice> {
-        return deviceRepository.getAllDevices()
+    suspend operator fun invoke(): List<BleDeviceModel> {
+        return deviceRepository.getSavedDevices()
     }
 }
 
 class SetFavoriteDeviceUseCase @Inject constructor(
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: BleRepository
 ) {
     /**
      * Marca un dispositivo como favorito para reconexión automática
@@ -40,12 +31,12 @@ class SetFavoriteDeviceUseCase @Inject constructor(
      * @param macAddress Dirección MAC del dispositivo a marcar como favorito
      */
     suspend operator fun invoke(macAddress: String) {
-        deviceRepository.setFavoriteDevice(macAddress)
+//        deviceRepository.setFavoriteDevice(macAddress)
     }
 }
 
 class UpdateDeviceNicknameUseCase @Inject constructor(
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: BleRepository
 ) {
     /**
      * Actualiza el apodo personalizado de un dispositivo
@@ -54,12 +45,12 @@ class UpdateDeviceNicknameUseCase @Inject constructor(
      * @param nickname Nuevo apodo (puede estar vacío)
      */
     suspend operator fun invoke(macAddress: String, nickname: String) {
-        deviceRepository.updateNickname(macAddress, nickname)
+//        deviceRepository.updateNickname(macAddress, nickname)
     }
 }
 
 class DeleteDeviceUseCase @Inject constructor(
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: BleRepository
 ) {
     /**
      * Elimina un dispositivo de la lista de dispositivos guardados

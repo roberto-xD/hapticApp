@@ -10,7 +10,7 @@ package com.smartbe.hapticcontrol.domain.model
  * @property lastConnectionDate Timestamp de última conexión exitosa
  * @property isFavorite Marca si es el dispositivo favorito para reconexión automática
  */
-data class BleDevice(
+data class BleDeviceModel(
     val macAddress: String,
     val name: String,
     val nickname: String = "",

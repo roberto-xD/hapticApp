@@ -1,6 +1,6 @@
 package com.smartbe.hapticcontrol.presentation.control
 
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import com.smartbe.hapticcontrol.domain.model.ConnectionState
 import com.smartbe.hapticcontrol.domain.model.DeviceMode
 
@@ -8,7 +8,7 @@ import com.smartbe.hapticcontrol.domain.model.DeviceMode
  * Estado UI para la pantalla de control del dispositivo
  */
 data class ControlUiState(
-    val connectedDevice: BleDevice? = null,
+    val connectedDevice: BleDeviceModel? = null,
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     val currentMode: DeviceMode.CurrentState = DeviceMode.CurrentState(),
     val isSendingCommand: Boolean = false,

@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
  * Entidad Room para persistir dispositivos BLE
  */
 @Entity(tableName = "devices")
-data class DeviceEntity(
+data class BleDeviceEntity(
     @PrimaryKey
     @ColumnInfo(name = "mac_address")
     val macAddress: String,

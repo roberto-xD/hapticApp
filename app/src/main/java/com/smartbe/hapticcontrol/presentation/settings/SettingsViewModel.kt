@@ -2,7 +2,7 @@ package com.smartbe.hapticcontrol.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import com.smartbe.hapticcontrol.domain.usecase.DeleteDeviceUseCase
 import com.smartbe.hapticcontrol.domain.usecase.GetSavedDevicesUseCase
 import com.smartbe.hapticcontrol.domain.usecase.SetFavoriteDeviceUseCase
@@ -39,32 +39,23 @@ class SettingsViewModel @Inject constructor(
      */
     private fun observeSavedDevices() {
         viewModelScope.launch {
-            getSavedDevicesUseCase()
-                .catch { exception ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "Error al cargar dispositivos: ${exception.message}"
-                        )
-                    }
+            getSavedDevicesUseCase.invoke().let{ devices ->
+                val favorite = devices.firstOrNull { it.isFavorite }
+                _uiState.update {
+                    it.copy(
+                        savedDevices = devices,
+                        favoriteDevice = favorite,
+                        isLoading = false
+                    )
                 }
-                .collect { devices ->
-                    val favorite = devices.firstOrNull { it.isFavorite }
-                    _uiState.update {
-                        it.copy(
-                            savedDevices = devices,
-                            favoriteDevice = favorite,
-                            isLoading = false
-                        )
-                    }
-                }
+            }
         }
     }
 
     /**
      * Marca un dispositivo como favorito
      */
-    fun setFavoriteDevice(device: BleDevice) {
+    fun setFavoriteDevice(device: BleDeviceModel) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
@@ -84,7 +75,7 @@ class SettingsViewModel @Inject constructor(
     /**
      * Muestra el diálogo para editar apodo
      */
-    fun showNicknameDialog(device: BleDevice) {
+    fun showNicknameDialog(device: BleDeviceModel) {
         _uiState.update {
             it.copy(
                 showNicknameDialog = true,
@@ -141,7 +132,7 @@ class SettingsViewModel @Inject constructor(
     /**
      * Muestra el diálogo de confirmación de eliminación
      */
-    fun showDeleteDialog(device: BleDevice) {
+    fun showDeleteDialog(device: BleDeviceModel) {
         _uiState.update {
             it.copy(
                 showDeleteDialog = true,

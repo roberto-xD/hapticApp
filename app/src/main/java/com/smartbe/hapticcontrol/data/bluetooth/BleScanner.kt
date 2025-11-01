@@ -12,7 +12,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -37,7 +37,7 @@ class BleScanner @Inject constructor(
     }
 
     private var isScanning = false
-    private val scannedDevices = mutableMapOf<String, BleDevice>()
+    private val scannedDevices = mutableMapOf<String, BleDeviceModel>()
 
     /**
      * Verifica si el dispositivo soporta BLE
@@ -78,7 +78,7 @@ class BleScanner @Inject constructor(
      * Inicia el escaneo de dispositivos BLE
      */
     @SuppressLint("MissingPermission")
-    fun startScan(): Flow<Result<BleDevice>> = callbackFlow {
+    fun startScan(): Flow<Result<BleDeviceModel>> = callbackFlow {
         if (!isBleSupported()) {
             trySend(Result.failure(Exception("BLE not supported")))
             close()
@@ -168,7 +168,7 @@ class BleScanner @Inject constructor(
      * Procesa un resultado de escaneo y lo convierte a BleDevice
      */
     @SuppressLint("MissingPermission")
-    private fun handleScanResult(result: ScanResult): BleDevice? {
+    private fun handleScanResult(result: ScanResult): BleDeviceModel? {
         val device = result.device
         val macAddress = device.address
         val name = device.name ?: return null
@@ -188,7 +188,7 @@ class BleScanner @Inject constructor(
             return null
         }
 
-        val bleDevice = BleDevice(
+        val bleDevice = BleDeviceModel(
             macAddress = macAddress,
             name = name,
             rssi = result.rssi

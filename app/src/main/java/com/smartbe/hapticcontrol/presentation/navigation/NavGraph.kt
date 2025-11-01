@@ -34,14 +34,8 @@ fun NavGraph(
     ) {
         composable(Screen.Scan.route) {
             ScanScreen(
-                onDeviceConnected = {
-                    navController.navigate(Screen.Control.route) {
-                        // Evitar múltiples copias de Control en el back stack
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
+                onDeviceSelected = {
+
                 }
             )
         }

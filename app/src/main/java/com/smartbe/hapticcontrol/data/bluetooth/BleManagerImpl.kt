@@ -1,6 +1,6 @@
 package com.smartbe.hapticcontrol.data.bluetooth
 
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import com.smartbe.hapticcontrol.domain.model.BleError
 import com.smartbe.hapticcontrol.domain.model.ConnectionState
 import com.smartbe.hapticcontrol.domain.model.DeviceCommand
@@ -54,7 +54,7 @@ class BleManagerImpl @Inject constructor(
         _connectionState.value = ConnectionState.SCANNING
 
         scanJob = scope.launch {
-            val devices = mutableListOf<BleDevice>()
+            val devices = mutableListOf<BleDeviceModel>()
 
             try {
                 bleScanner.startScan()
@@ -119,7 +119,7 @@ class BleManagerImpl @Inject constructor(
     /**
      * Conecta a un dispositivo BLE
      */
-    suspend fun connect(device: BleDevice): Result<Unit> {
+    suspend fun connect(device: BleDeviceModel): Result<Unit> {
         _connectionState.value = ConnectionState.CONNECTING
 
         return bleConnector.connect(device)
@@ -183,7 +183,7 @@ class BleManagerImpl @Inject constructor(
     /**
      * Obtiene el dispositivo actualmente conectado
      */
-    fun getConnectedDevice(): BleDevice? {
+    fun getConnectedDevice(): BleDeviceModel? {
         return bleConnector.getConnectedDevice()
     }
 

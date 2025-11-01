@@ -1,95 +1,183 @@
 package com.smartbe.hapticcontrol.domain.repository
 
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import com.smartbe.hapticcontrol.domain.model.ConnectionState
-import com.smartbe.hapticcontrol.domain.model.DeviceCommand
-import com.smartbe.hapticcontrol.domain.model.ScanResult
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Repositorio para operaciones BLE (Bluetooth Low Energy)
- * Maneja escaneo, conexión y comunicación con dispositivos
+ * Repositorio para gestionar operaciones Bluetooth Low Energy
+ * Define el contrato para todas las operaciones BLE de la aplicación
  */
 interface BleRepository {
 
-    /**
-     * Flow que emite el estado actual de la conexión
-     */
-    val connectionState: Flow<ConnectionState>
+    // ========== ESTADOS OBSERVABLES ==========
 
     /**
-     * Flow que emite los resultados del escaneo
+     * Lista de dispositivos encontrados durante el escaneo
      */
-    val scanResults: Flow<ScanResult>
+    val scannedDevices: StateFlow<List<BleDeviceModel>>
 
     /**
-     * Flow que emite notificaciones recibidas del dispositivo
+     * Estado actual de la conexión
      */
-    val notifications: Flow<ByteArray>
+    val connectionState: StateFlow<ConnectionState>
+
+    /**
+     * Dispositivo actualmente conectado (null si no hay conexión)
+     */
+    val connectedDevice: StateFlow<BleDeviceModel?>
+
+    /**
+     * Datos recibidos del dispositivo conectado
+     */
+    val receivedData: StateFlow<ByteArray?>
+
+    /**
+     * Estado de advertising (transmitiendo como beacon)
+     */
+    val isAdvertising: StateFlow<Boolean>
+
+    /**
+     * Error durante advertising (null si no hay error)
+     */
+    val advertisingError: StateFlow<String?>
+
+    // ========== FUNCIONES DE ESCANEO ==========
 
     /**
      * Inicia el escaneo de dispositivos BLE cercanos
-     *
-     * @param timeoutMillis Tiempo máximo de escaneo en milisegundos (default: 5000ms)
+     * Filtra automáticamente por nombres permitidos (KGL, WB, LG-)
+     * Se detiene automáticamente después del timeout configurado
      */
-    suspend fun startScan(timeoutMillis: Long = 5000L)
+    suspend fun startScan()
 
     /**
-     * Detiene el escaneo activo
+     * Detiene el escaneo de dispositivos BLE
      */
     suspend fun stopScan()
+
+    // ========== FUNCIONES DE CONEXIÓN ==========
 
     /**
      * Conecta con un dispositivo BLE específico
      *
      * @param device Dispositivo al que conectarse
-     * @return Result indicando éxito o fallo con mensaje de error
+     * @return Result con éxito o error
      */
-    suspend fun connect(device: BleDevice): Result<Unit>
+    suspend fun connect(device: BleDeviceModel): Result<Unit>
 
     /**
      * Desconecta del dispositivo actual
+     * Limpia las características y cierra la conexión GATT
      */
     suspend fun disconnect()
 
-    /**
-     * Envía un comando al dispositivo conectado
-     *
-     * @param command Comando a enviar
-     * @return Result indicando éxito o fallo
-     */
-    suspend fun sendCommand(command: DeviceCommand): Result<Unit>
+    // ========== FUNCIONES DE ENVÍO DE DATOS ==========
 
     /**
-     * Habilita las notificaciones del dispositivo
+     * Envía datos raw al dispositivo conectado
      *
-     * @return Result indicando éxito o fallo
+     * @param data ByteArray con los datos a enviar
+     * @return Result con éxito o error
      */
-    suspend fun enableNotifications(): Result<Unit>
+    suspend fun sendData(data: ByteArray): Result<Unit>
 
     /**
-     * Deshabilita las notificaciones del dispositivo
+     * Envía un comando con formato específico (TAG + tipo + data + checksum)
+     *
+     * @param commandType Tipo de comando (byte)
+     * @param data Datos adicionales del comando (vacío por defecto)
+     * @return Result con éxito o error
      */
-    suspend fun disableNotifications()
+    suspend fun sendCommand(commandType: Byte, data: ByteArray = byteArrayOf()): Result<Unit>
 
     /**
-     * Obtiene el dispositivo actualmente conectado
+     * Envía comando de parada al dispositivo
+     * Equivalente a sendCommand(0x00)
      *
-     * @return Dispositivo conectado o null si no hay conexión
+     * @return Result con éxito o error
      */
-    suspend fun getConnectedDevice(): BleDevice?
+    suspend fun sendStopCommand(): Result<Unit>
 
     /**
-     * Verifica si Bluetooth está habilitado
+     * Envía comando de modo con frecuencia e intensidad
      *
-     * @return true si Bluetooth está habilitado
+     * @param mode Modo de operación (byte)
+     * @param frequency Frecuencia (0-100)
+     * @param intensity Intensidad (0-100)
+     * @return Result con éxito o error
      */
-    suspend fun isBluetoothEnabled(): Boolean
+    suspend fun sendModeCommand(
+        mode: Byte,
+        frequency: Int,
+        intensity: Int
+    ): Result<Unit>
+
+    // ========== FUNCIONES DE ADVERTISING (iBeacon) ==========
 
     /**
-     * Verifica si el dispositivo soporta BLE
+     * Inicia broadcasting BLE con datos personalizados
+     * El dispositivo actúa como un beacon transmitiendo información
      *
-     * @return true si BLE está soportado
+     * @param data ByteArray con los datos a transmitir
+     * @param durationMillis Duración del advertising en milisegundos (default: 5000)
      */
-    suspend fun isBleSupported(): Boolean
+    suspend fun startAdvertising(data: ByteArray, durationMillis: Long = 5000)
+
+    /**
+     * Inicia broadcasting como iBeacon
+     * Transmite en formato compatible con iBeacon de Apple
+     *
+     * @param uuid UUID del beacon (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+     * @param major Identificador major (0-65535)
+     * @param minor Identificador minor (0-65535)
+     */
+    suspend fun startIBeaconAdvertising(uuid: String, major: Int, minor: Int)
+
+    /**
+     * Detiene el broadcasting BLE
+     */
+    suspend fun stopAdvertising()
+
+    // ========== FUNCIONES DE PERSISTENCIA ==========
+
+    /**
+     * Guarda un dispositivo en la base de datos local
+     * Actualiza el timestamp de última conexión
+     *
+     * @param device Dispositivo a guardar
+     */
+    suspend fun saveDevice(device: BleDeviceModel)
+
+    /**
+     * Obtiene el último dispositivo conectado desde la base de datos
+     * Útil para reconexión automática
+     *
+     * @return BleDeviceModel o null si no hay dispositivos guardados
+     */
+    suspend fun getLastConnectedDevice(): BleDeviceModel?
+
+    /**
+     * Obtiene todos los dispositivos guardados como Flow
+     * Permite observar cambios en la lista de dispositivos guardados
+     *
+     * @return Flow que emite lista de dispositivos guardados
+     */
+    suspend fun getSavedDevices(): List<BleDeviceModel>
+
+    /**
+     * Elimina un dispositivo de la base de datos
+     *
+     * @param address Dirección MAC del dispositivo a eliminar
+     */
+    suspend fun deleteDevice(address: String)
+
+    // ========== LIMPIEZA ==========
+
+    /**
+     * Libera recursos y cierra conexiones
+     * Debe llamarse cuando ya no se necesite el repositorio
+     */
+    fun release()
 }

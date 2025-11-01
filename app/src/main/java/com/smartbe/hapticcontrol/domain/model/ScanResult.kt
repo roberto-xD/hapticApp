@@ -13,12 +13,12 @@ sealed class ScanResult {
     /**
      * Dispositivo encontrado durante el escaneo
      */
-    data class DeviceFound(val device: BleDevice) : ScanResult()
+    data class DeviceFound(val device: BleDeviceModel) : ScanResult()
 
     /**
      * Escaneo completado exitosamente
      */
-    data class ScanComplete(val devices: List<BleDevice>) : ScanResult()
+    data class ScanComplete(val devices: List<BleDeviceModel>) : ScanResult()
 
     /**
      * Error durante el escaneo

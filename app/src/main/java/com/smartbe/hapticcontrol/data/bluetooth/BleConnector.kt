@@ -15,7 +15,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +41,7 @@ class BleConnector @Inject constructor(
     }
 
     private var bluetoothGatt: BluetoothGatt? = null
-    private var connectedDevice: BleDevice? = null
+    private var connectedDevice: BleDeviceModel? = null
 
     private val _connectionState = MutableStateFlow(BleConstants.STATE_DISCONNECTED)
     val connectionState: StateFlow<Int> = _connectionState
@@ -68,7 +68,7 @@ class BleConnector @Inject constructor(
      * Conecta a un dispositivo BLE
      */
     @SuppressLint("MissingPermission")
-    suspend fun connect(device: BleDevice): Result<Unit> = suspendCancellableCoroutine { continuation ->
+    suspend fun connect(device: BleDeviceModel): Result<Unit> = suspendCancellableCoroutine { continuation ->
         if (!hasConnectPermission()) {
             continuation.resume(Result.failure(Exception("Missing BLUETOOTH_CONNECT permission")))
             return@suspendCancellableCoroutine
@@ -320,7 +320,7 @@ class BleConnector @Inject constructor(
     /**
      * Obtiene el dispositivo actualmente conectado
      */
-    fun getConnectedDevice(): BleDevice? = connectedDevice
+    fun getConnectedDevice(): BleDeviceModel? = connectedDevice
 
     /**
      * Verifica si está conectado

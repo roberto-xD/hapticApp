@@ -1,7 +1,7 @@
 package com.smartbe.hapticcontrol.data.local.mapper
 
-import com.smartbe.hapticcontrol.data.local.entity.DeviceEntity
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.data.local.entity.BleDeviceEntity
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 
 /**
  * Mappers para convertir entre Entity y Domain Model
@@ -10,8 +10,8 @@ import com.smartbe.hapticcontrol.domain.model.BleDevice
 /**
  * Convierte DeviceEntity a BleDevice (domain model)
  */
-fun DeviceEntity.toDomain(): BleDevice {
-    return BleDevice(
+fun BleDeviceEntity.toDomain(): BleDeviceModel {
+    return BleDeviceModel(
         macAddress = macAddress,
         name = name,
         nickname = nickname,
@@ -24,8 +24,8 @@ fun DeviceEntity.toDomain(): BleDevice {
 /**
  * Convierte BleDevice (domain model) a DeviceEntity
  */
-fun BleDevice.toEntity(): DeviceEntity {
-    return DeviceEntity(
+fun BleDeviceModel.toEntity(): BleDeviceEntity {
+    return BleDeviceEntity(
         macAddress = macAddress,
         name = name,
         nickname = nickname,
@@ -38,13 +38,13 @@ fun BleDevice.toEntity(): DeviceEntity {
 /**
  * Convierte lista de DeviceEntity a lista de BleDevice
  */
-fun List<DeviceEntity>.toDomain(): List<BleDevice> {
+fun List<BleDeviceEntity>.toDomain(): List<BleDeviceModel> {
     return map { it.toDomain() }
 }
 
 /**
  * Convierte lista de BleDevice a lista de DeviceEntity
  */
-fun List<BleDevice>.toEntity(): List<DeviceEntity> {
+fun List<BleDeviceModel>.toEntity(): List<BleDeviceEntity> {
     return map { it.toEntity() }
 }

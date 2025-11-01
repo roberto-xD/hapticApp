@@ -47,7 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -125,11 +125,11 @@ fun SettingsScreen(
 
 @Composable
 private fun DevicesList(
-    devices: List<BleDevice>,
-    favoriteDevice: BleDevice?,
-    onSetFavorite: (BleDevice) -> Unit,
-    onEditNickname: (BleDevice) -> Unit,
-    onDeleteDevice: (BleDevice) -> Unit
+    devices: List<BleDeviceModel>,
+    favoriteDevice: BleDeviceModel?,
+    onSetFavorite: (BleDeviceModel) -> Unit,
+    onEditNickname: (BleDeviceModel) -> Unit,
+    onDeleteDevice: (BleDeviceModel) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -159,7 +159,7 @@ private fun DevicesList(
 
 @Composable
 private fun DeviceCard(
-    device: BleDevice,
+    device: BleDeviceModel,
     isFavorite: Boolean,
     onSetFavorite: () -> Unit,
     onEditNickname: () -> Unit,

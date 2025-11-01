@@ -1,18 +1,18 @@
 package com.smartbe.hapticcontrol.presentation.settings
 
-import com.smartbe.hapticcontrol.domain.model.BleDevice
+import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 
 /**
  * Estado UI para la pantalla de configuración
  */
 data class SettingsUiState(
-    val savedDevices: List<BleDevice> = emptyList(),
-    val favoriteDevice: BleDevice? = null,
+    val savedDevices: List<BleDeviceModel> = emptyList(),
+    val favoriteDevice: BleDeviceModel? = null,
     val isLoading: Boolean = false,
     val showDeleteDialog: Boolean = false,
-    val deviceToDelete: BleDevice? = null,
+    val deviceToDelete: BleDeviceModel? = null,
     val showNicknameDialog: Boolean = false,
-    val deviceToEdit: BleDevice? = null,
+    val deviceToEdit: BleDeviceModel? = null,
     val editNickname: String = "",
     val error: String? = null
 ) {
