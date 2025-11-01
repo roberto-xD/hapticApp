@@ -2,26 +2,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ========== PERMISOS DE BLUETOOTH ========== -->
-
-    <!-- Permisos para Android 11 y anteriores -->
-    <uses-permission android:name="android.permission.BLUETOOTH"
-        android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="30" />
-
-    <!-- Permisos para Android 12+ (API 31+) -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation"
-        tools:targetApi="s" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
-
-    <!-- Permiso de ubicación (requerido para escaneo BLE) -->
+    <!-- ========== PERMISOS DE UBICACIÓN ========== -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Declara que la app requiere BLE -->
+    <!-- ========== PERMISOS BLUETOOTH LEGACY (Android 11 y anteriores) ========== -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+
+    <!-- ========== PERMISOS BLUETOOTH MODERNOS (Android 12+) ========== -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+
+    <!-- ========== HARDWARE FEATURES ========== -->
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
@@ -36,9 +34,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.HapticControl"
-        tools:targetApi="31">
+        tools:targetApi="35">
 
-        <!-- MainActivity será creada en la siguiente fase -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

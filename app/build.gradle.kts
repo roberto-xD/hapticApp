@@ -19,6 +19,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += mapOf(
+
+                )
+            }
+        }
     }
 
     buildTypes {
@@ -31,11 +41,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -54,10 +64,12 @@ android {
                 "META-INF/ASL2.0",
                 "META-INF/*.kotlin_module",
                 "META-INF/AL2.0",
-                "META-INF/LGPL2.1"
+                "META-INF/LGPL2.1",
+                "META-INF/{AL2.0,LGPL2.1}"
             )
         }
     }
+
 }
 
 dependencies {
