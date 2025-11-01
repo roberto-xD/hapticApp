@@ -6,7 +6,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- ========== PERMISOS BLUETOOTH LEGACY (Android 11 y anteriores) ========== -->
+    <!-- PARA ANDROID 12+ (API 31+) -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ========== BLUETOOTH PERMISSIONS ========== -->
+    <!-- Permisos legacy (Android 11 y anteriores) -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
@@ -14,10 +18,16 @@
         android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
 
-    <!-- ========== PERMISOS BLUETOOTH MODERNOS (Android 12+) ========== -->
+    <!-- Permisos modernos (Android 12+) -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+
+    <!-- Para Android 12+: reducir visibilidad de dispositivos Bluetooth -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- Para Android 13+: permisos adicionales -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- ========== HARDWARE FEATURES ========== -->
     <uses-feature

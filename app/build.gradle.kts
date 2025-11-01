@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.crashlytics)
     id ("kotlin-kapt")
     id ("dagger.hilt.android.plugin")
+    kotlin("plugin.serialization") version "1.9.20"
 }
 android {
     namespace = "com.smartbe.hapticcontrol"
@@ -19,16 +20,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf(
-
-                )
-            }
-        }
     }
 
     buildTypes {
@@ -41,11 +32,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "11"
     }
     buildFeatures {
         compose = true
@@ -154,6 +145,7 @@ dependencies {
 
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
     // CameraX para la vista de cámara
