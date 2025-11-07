@@ -2,7 +2,7 @@ package com.smartbe.hapticcontrol.domain.repository
 
 import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import com.smartbe.hapticcontrol.domain.model.ConnectionState
-import kotlinx.coroutines.flow.Flow
+import com.smartbe.hapticcontrol.domain.model.VisitorMode
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -180,4 +180,55 @@ interface BleRepository {
      * Debe llamarse cuando ya no se necesite el repositorio
      */
     fun release()
+// ========== MODO VISITANTE (BROADCASTING) ==========
+
+    /**
+     * Estado del modo visitante
+     */
+    val visitorModeEnabled: StateFlow<Boolean>
+
+    /**
+     * Estado de broadcasting
+     */
+    val isBroadcasting: StateFlow<Boolean>
+
+    /**
+     * Información del modo visitante
+     */
+    val visitorModeInfo: StateFlow<VisitorMode>
+
+    /**
+     * Habilita o deshabilita el modo visitante
+     */
+    suspend fun setVisitorMode(enabled: Boolean)
+
+    /**
+     * Envía comando en modo broadcasting (sin conexión directa)
+     * Los dispositivos físicos cercanos recibirán el comando vía BLE advertising
+     *
+     * @param commandType Tipo de comando
+     * @param data Datos del comando
+     * @param lowLatency Si true, usa broadcasting de baja latencia (1.5s), si false usa normal (5s)
+     * @return Result con éxito o error
+     */
+    suspend fun broadcastCommand(
+        commandType: Byte,
+        data: ByteArray = byteArrayOf(),
+        lowLatency: Boolean = false
+    ): Result<Unit>
+
+    /**
+     * Envía comando de modo con broadcasting
+     */
+    suspend fun broadcastModeCommand(
+        mode: Byte,
+        frequency: Int,
+        intensity: Int,
+        lowLatency: Boolean = false
+    ): Result<Unit>
+
+    /**
+     * Detiene el broadcasting actual
+     */
+    suspend fun stopBroadcast()
 }

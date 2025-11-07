@@ -12,7 +12,19 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import com.smartbe.hapticcontrol.domain.model.ConnectionState
-import com.smartbe.hapticcontrol.domain.usecase.*
+import com.smartbe.hapticcontrol.domain.model.VisitorMode
+import com.smartbe.hapticcontrol.domain.usecase.BroadcastCommandUseCase
+import com.smartbe.hapticcontrol.domain.usecase.BroadcastModeCommandUseCase
+import com.smartbe.hapticcontrol.domain.usecase.ConnectDeviceUseCase
+import com.smartbe.hapticcontrol.domain.usecase.GetConnectionStateUseCase
+import com.smartbe.hapticcontrol.domain.usecase.GetLastConnectedDeviceUseCase
+import com.smartbe.hapticcontrol.domain.usecase.GetScannedDevicesUseCase
+import com.smartbe.hapticcontrol.domain.usecase.GetVisitorModeInfoUseCase
+import com.smartbe.hapticcontrol.domain.usecase.GetVisitorModeUseCase
+import com.smartbe.hapticcontrol.domain.usecase.SetVisitorModeUseCase
+import com.smartbe.hapticcontrol.domain.usecase.StartScanUseCase
+import com.smartbe.hapticcontrol.domain.usecase.StopScanUseCase
+import com.smartbe.hapticcontrol.presentation.control.ControlViewModel.Companion.COMMAND_STOP
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +41,12 @@ class ScanViewModel @Inject constructor(
     private val connectDeviceUseCase: ConnectDeviceUseCase,
     private val getScannedDevicesUseCase: GetScannedDevicesUseCase,
     private val getConnectionStateUseCase: GetConnectionStateUseCase,
-    private val getLastConnectedDeviceUseCase: GetLastConnectedDeviceUseCase
+    private val getLastConnectedDeviceUseCase: GetLastConnectedDeviceUseCase,
+    private val setVisitorUseCase : SetVisitorModeUseCase,
+    private val getVisitorModeUseCase: GetVisitorModeUseCase,
+    private val getVisitorModeInfoUseCase: GetVisitorModeInfoUseCase,
+    private val broadcastCommandUseCase: BroadcastCommandUseCase,
+    private val broadcastModeCommandUseCase: BroadcastModeCommandUseCase,
 ) : AndroidViewModel(application) {
 
     private val context: Context = application.applicationContext
@@ -59,6 +76,21 @@ class ScanViewModel @Inject constructor(
     // NUEVO: StateFlow para permisos
     private val _hasPermissions = MutableStateFlow(false)
     val hasPermissions: StateFlow<Boolean> = _hasPermissions.asStateFlow()
+
+    // ========== MODO VISITANTE ==========
+
+    val visitorModeEnabled: StateFlow<Boolean> = getVisitorModeUseCase()
+    val visitorModeInfo: StateFlow<VisitorMode> = getVisitorModeInfoUseCase()
+
+    private val _currentMode = MutableStateFlow<Byte>(0x01)
+    val currentMode: StateFlow<Byte> = _currentMode.asStateFlow()
+    private val _currentFrequency = MutableStateFlow(50)
+    val currentFrequency: StateFlow<Int> = _currentFrequency.asStateFlow()
+    private val _currentIntensity = MutableStateFlow(0)
+    val currentIntensity: StateFlow<Int> = _currentIntensity.asStateFlow()
+
+    private val _showVisitorModeDialog = MutableStateFlow(false)
+    val showVisitorModeDialog: StateFlow<Boolean> = _showVisitorModeDialog.asStateFlow()
 
     companion object {
         private const val SCAN_DURATION = 10000L
@@ -401,6 +433,101 @@ class ScanViewModel @Inject constructor(
         Log.d(tag, "onPause() called")
         if (_isScanning.value) {
             stopScan()
+        }
+    }
+
+    fun setVisitorMode() = viewModelScope.launch{
+        setVisitorUseCase.invoke(true)
+    }
+
+    fun showVisitorModeDialog() {
+        _showVisitorModeDialog.value = true
+    }
+
+    fun hideVisitorModeDialog() {
+        _showVisitorModeDialog.value = false
+    }
+
+
+    /**
+     * MODIFICADO: Envía comando (normal o broadcast según modo)
+     */
+    fun sendModeCommand() {
+        viewModelScope.launch {
+            try {
+                val isVisitorMode = visitorModeEnabled.value
+
+                if (isVisitorMode) {
+                    // Modo visitante: usar broadcasting
+                    broadcastModeCommandUseCase(
+                        _currentMode.value,
+                        _currentFrequency.value,
+                        _currentIntensity.value,
+                        lowLatency = true // Usar baja latencia para respuesta rápida
+                    ).onFailure { error ->
+                        _errorMessage.value = "Error broadcasting: ${error.message}"
+                    }.onSuccess {
+                        _successMessage.value = "Comando transmitido (Modo Visitante)"
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Error al enviar modo: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * MODIFICADO: Inicia el dispositivo (normal o broadcast)
+     */
+    fun startDevice() {
+        viewModelScope.launch {
+            try {
+
+                val isVisitorMode = visitorModeEnabled.value
+
+                if (isVisitorMode) {
+                    // Modo visitante: broadcast
+                    broadcastModeCommandUseCase(
+                        _currentMode.value,
+                        _currentFrequency.value,
+                        _currentIntensity.value,
+                        lowLatency = false
+                    ).onSuccess {
+                        _successMessage.value = "bordcast iniciado"
+                    }.onFailure { error ->
+                        _errorMessage.value = "Error al transmitir: ${error.message}"
+                    }
+                }
+
+            } catch (e: Exception) {
+                _errorMessage.value = "Error inesperado: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * MODIFICADO: Detiene el dispositivo (normal o broadcast)
+     */
+    fun stopDevice() {
+        viewModelScope.launch {
+            try {
+                val isVisitorMode = visitorModeEnabled.value
+
+                if (isVisitorMode) {
+                    // Modo visitante: broadcast stop
+                    broadcastCommandUseCase(
+                        COMMAND_STOP,
+                        lowLatency = true
+                    ).onSuccess {
+                        _successMessage.value = "Comando STOP transmitido"
+                    }.onFailure { error ->
+                        _errorMessage.value = "Error al detener: ${error.message}"
+                    }
+                }
+
+            } catch (e: Exception) {
+                _errorMessage.value = "Error al detener: ${e.message}"
+            }
         }
     }
 }

@@ -23,16 +23,16 @@ import com.smartbe.hapticcontrol.data.local.dao.BleDeviceDao
 import com.smartbe.hapticcontrol.data.local.entity.BleDeviceEntity
 import com.smartbe.hapticcontrol.domain.model.BleDeviceModel
 import com.smartbe.hapticcontrol.domain.model.ConnectionState
+import com.smartbe.hapticcontrol.domain.model.VisitorCommands
+import com.smartbe.hapticcontrol.domain.model.VisitorMode
 import com.smartbe.hapticcontrol.domain.repository.BleRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -91,6 +91,19 @@ class BleRepositoryImpl @Inject constructor(
     // Estado de advertising
     override val isAdvertising: StateFlow<Boolean> = advertiserManager.isAdvertising
     override val advertisingError: StateFlow<String?> = advertiserManager.advertisingError
+
+    // ========== MODO VISITANTE (BROADCASTING) ==========
+
+    private val _visitorModeEnabled = MutableStateFlow(false)
+    override val visitorModeEnabled: StateFlow<Boolean> = _visitorModeEnabled.asStateFlow()
+
+    private val _isBroadcasting = MutableStateFlow(false)
+    override val isBroadcasting: StateFlow<Boolean> = _isBroadcasting.asStateFlow()
+
+    private val _visitorModeInfo = MutableStateFlow(VisitorMode())
+    override val visitorModeInfo: StateFlow<VisitorMode> = _visitorModeInfo.asStateFlow()
+
+    private var broadcastCount = 0
 
     // ========== SCAN CALLBACK ==========
 
@@ -616,12 +629,162 @@ class BleRepositoryImpl @Inject constructor(
         }
     }
 
-    // ========== LIMPIEZA ==========
+    // ========== IMPLEMENTACIÓN MODO VISITANTE (BROADCASTING) ==========
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_ADVERTISE)
+    override suspend fun setVisitorMode(enabled: Boolean) {
+        withContext(Dispatchers.IO) {
+            _visitorModeEnabled.value = enabled
+            Log.d(tag, "Visitor mode (broadcasting) ${if (enabled) "ENABLED" else "DISABLED"}")
 
+            if (!enabled) {
+                // Detener broadcasting si está activo
+                stopBroadcast()
+                broadcastCount = 0
+                _visitorModeInfo.value = VisitorMode()
+            } else {
+                _visitorModeInfo.value = VisitorMode(isEnabled = true)
+            }
+        }
+    }
+
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_ADVERTISE)
+    override suspend fun broadcastCommand(
+        commandType: Byte,
+        data: ByteArray,
+        lowLatency: Boolean
+    ): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (!_visitorModeEnabled.value) {
+                    return@withContext Result.failure(
+                        Exception("Visitor mode not enabled")
+                    )
+                }
+
+                Log.d(tag, "Broadcasting command: type=0x${commandType.toString(16)}, " +
+                        "data=${BleCommandUtil.bytesToHexString(data)}, " +
+                        "lowLatency=$lowLatency")
+
+                // Crear comando BLE con formato completo
+                val bleCommand = BleCommandUtil.getBleCommand(commandType, data)
+
+                // Crear datos de advertising con el comando
+                val advertisingData = createVisitorAdvertisingData(bleCommand)
+
+                // Determinar duración según latencia
+                val duration = if (lowLatency) 1500L else 5000L
+
+                // Iniciar advertising
+                _isBroadcasting.value = true
+                advertiserManager.startAdvertising(advertisingData, duration)
+
+                // Actualizar info
+                broadcastCount++
+                _visitorModeInfo.value = _visitorModeInfo.value.copy(
+                    isBroadcasting = true,
+                    broadcastingDuration = duration,
+                    lastCommandSent = bleCommand,
+                    broadcastCount = broadcastCount
+                )
+
+                Log.d(tag, "Broadcasting started (duration: ${duration}ms, count: $broadcastCount)")
+
+                // Auto-detener después de la duración
+                launch {
+                    delay(duration)
+                    _isBroadcasting.value = false
+                    _visitorModeInfo.value = _visitorModeInfo.value.copy(
+                        isBroadcasting = false
+                    )
+                    Log.d(tag, "Broadcasting finished")
+                }
+
+                Result.success(Unit)
+
+            } catch (e: Exception) {
+                Log.e(tag, "Error broadcasting command", e)
+                _isBroadcasting.value = false
+                _visitorModeInfo.value = _visitorModeInfo.value.copy(
+                    isBroadcasting = false
+                )
+                Result.failure(e)
+            }
+        }
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
+    override suspend fun broadcastModeCommand(
+        mode: Byte,
+        frequency: Int,
+        intensity: Int,
+        lowLatency: Boolean
+    ): Result<Unit> {
+        val data = byteArrayOf(
+            frequency.coerceIn(0, 100).toByte(),
+            intensity.coerceIn(0, 100).toByte()
+        )
+        return broadcastCommand(mode, data, lowLatency)
+    }
+
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_ADVERTISE)
+    override suspend fun stopBroadcast() {
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d(tag, "Stopping broadcast...")
+                advertiserManager.stopAdvertising()
+                _isBroadcasting.value = false
+                _visitorModeInfo.value = _visitorModeInfo.value.copy(
+                    isBroadcasting = false
+                )
+            } catch (e: Exception) {
+                Log.e(tag, "Error stopping broadcast", e)
+            }
+        }
+    }
+
+    /**
+     * Crea datos de advertising para modo visitante
+     * Formato compatible con los dispositivos físicos
+     */
+    private fun createVisitorAdvertisingData(command: ByteArray): ByteArray {
+        // Formato: [Prefix (3 bytes)] + [Command data] + [Padding si necesario]
+        val prefix = VisitorCommands.BROADCAST_TAG_PREFIX.toByteArray()
+
+        // Tamaño total recomendado para advertising: ~20-23 bytes
+        val totalSize = 23
+        val commandSize = command.size.coerceAtMost(totalSize - prefix.size)
+
+        val advertisingData = ByteArray(totalSize)
+
+        // Copiar prefix
+        prefix.copyInto(advertisingData, 0, 0, prefix.size)
+
+        // Copiar comando
+        command.copyInto(
+            advertisingData,
+            prefix.size,
+            0,
+            commandSize
+        )
+
+        // Padding con ceros si es necesario
+        for (i in (prefix.size + commandSize) until totalSize) {
+            advertisingData[i] = 0x00
+        }
+
+        Log.d(tag, "Advertising data created: ${BleCommandUtil.bytesToHexString(advertisingData)}")
+        return advertisingData
+    }
+
+    /**
+     * Modifica release() para detener broadcasting
+     */
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_ADVERTISE)
     override fun release() {
         scope.launch {
             stopScan()
             disconnect()
+            stopBroadcast() // NUEVO: Detener broadcasting
             advertiserManager.release()
         }
     }
