@@ -2,7 +2,6 @@ package com.smartbe.hapticcontrol.data.bluetooth
 
 import android.util.Log
 import com.example.nirjon.bledemo4_advertising.util.BLEUtil
-import com.smartbe.hapticcontrol.domain.model.HapticCommand
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,6 +17,9 @@ import javax.inject.Singleton
  * como manufacturer data de un anuncio BLE real.
  *
  * El algoritmo vive en libble24.so. Aqui solo lo envolvemos.
+ *
+ * El payload es siempre de un byte: las 43 tramas capturadas de la app original
+ * miden 11 bytes sin excepcion.
  */
 @Singleton
 class RfPayloadBuilder @Inject constructor() {
@@ -39,19 +41,26 @@ class RfPayloadBuilder @Inject constructor() {
      * @param prefix   direccion de escucha. Solo cambia si el modelo declara
      *                 IsPrivateProtocol=1 con un BroadcastPrefix propio.
      */
+    /**
+     * @param command  byte de comando: 0x00 apagado, 0x01-0x09 modos
+     * @param label    solo para el log
+     * @param prefix   direccion de escucha. Solo cambia si el modelo declara
+     *                 IsPrivateProtocol=1 con un BroadcastPrefix propio.
+     */
     fun build(
-        command: HapticCommand,
+        command: Byte,
+        label: String = "CMD",
         prefix: ByteArray = DEFAULT_PREFIX
     ): Result<ByteArray> {
-        val data = byteArrayOf(command.code)
+        val data = byteArrayOf(command)
         val out = ByteArray(prefix.size + data.size + EXTRA_BYTES)
 
         return runCatching {
             BLEUtil.get_rf_payload(prefix, prefix.size, data, data.size, out)
-            Log.d(TAG, "${command.label} -> ${out.toHex()}")
+            Log.d(TAG, "$label -> ${out.toHex()}")
             out
         }.onFailure { error ->
-            Log.e(TAG, "Fallo construyendo trama para ${command.label}", error)
+            Log.e(TAG, "Fallo construyendo trama para $label", error)
         }
     }
 

@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.smartbe.hapticcontrol.domain.model.VibrationProgram
+import com.smartbe.hapticcontrol.domain.model.HapticMode
 
 /**
  * Panel de control.
@@ -74,7 +74,7 @@ fun ControlScreen(
     ) {
         TransmitIndicator(
             isBroadcasting = state.isBroadcasting,
-            activeName = state.activeProgram?.displayName
+            activeName = state.activeMode?.displayName
         )
 
         state.error?.let { message ->
@@ -86,13 +86,10 @@ fun ControlScreen(
 
         SectionLabel("Continua")
         Spacer(Modifier.height(12.dp))
-        state.steady.forEach { program ->
-            ProgramRow(
-                program = program,
-                isActive = program == state.activeProgram,
-                enabled = state.nativeAvailable,
-                onClick = { viewModel.select(program) }
-            )
+        state.continuous.forEach { mode ->
+            ModeRow(mode, mode == state.activeMode, state.nativeAvailable) {
+                viewModel.select(mode)
+            }
             Spacer(Modifier.height(8.dp))
         }
 
@@ -100,13 +97,10 @@ fun ControlScreen(
 
         SectionLabel("Ritmica")
         Spacer(Modifier.height(12.dp))
-        state.rhythms.forEach { program ->
-            ProgramRow(
-                program = program,
-                isActive = program == state.activeProgram,
-                enabled = state.nativeAvailable,
-                onClick = { viewModel.select(program) }
-            )
+        state.rhythmic.forEach { mode ->
+            ModeRow(mode, mode == state.activeMode, state.nativeAvailable) {
+                viewModel.select(mode)
+            }
             Spacer(Modifier.height(8.dp))
         }
 
@@ -131,12 +125,9 @@ fun ControlScreen(
     }
 }
 
-/**
- * Fila de programa. El punto de la izquierda se enciende en el que esta activo.
- */
 @Composable
-private fun ProgramRow(
-    program: VibrationProgram,
+private fun ModeRow(
+    mode: HapticMode,
     isActive: Boolean,
     enabled: Boolean,
     onClick: () -> Unit
@@ -154,7 +145,7 @@ private fun ProgramRow(
             )
             .alpha(if (enabled) 1f else 0.45f)
             .clickable(enabled = enabled, onClick = onClick)
-            .semantics { contentDescription = program.displayName }
+            .semantics { contentDescription = mode.displayName }
             .padding(horizontal = 16.dp, vertical = 18.dp)
     ) {
         Box(
@@ -165,7 +156,7 @@ private fun ProgramRow(
         )
         Spacer(Modifier.size(14.dp))
         Text(
-            text = program.displayName,
+            text = mode.displayName,
             color = if (isActive) Signal else Color(0xFFC3CBD6),
             fontSize = 15.sp,
             fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal

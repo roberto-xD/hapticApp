@@ -3,9 +3,9 @@ package com.smartbe.hapticcontrol.presentation.control
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartbe.hapticcontrol.data.bluetooth.RfPayloadBuilder
-import com.smartbe.hapticcontrol.domain.model.VibrationProgram
+import com.smartbe.hapticcontrol.domain.model.HapticMode
 import com.smartbe.hapticcontrol.domain.repository.HapticRepository
-import com.smartbe.hapticcontrol.domain.usecase.RunProgramUseCase
+import com.smartbe.hapticcontrol.domain.usecase.SelectModeUseCase
 import com.smartbe.hapticcontrol.domain.usecase.StopHapticUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +18,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ControlViewModel @Inject constructor(
-    private val runProgram: RunProgramUseCase,
+    private val selectMode: SelectModeUseCase,
     private val stopHaptic: StopHapticUseCase,
     private val payloadBuilder: RfPayloadBuilder,
     repository: HapticRepository
@@ -34,8 +34,8 @@ class ControlViewModel @Inject constructor(
             .onEach { value -> _uiState.value = _uiState.value.copy(isBroadcasting = value) }
             .launchIn(viewModelScope)
 
-        repository.activeProgram
-            .onEach { value -> _uiState.value = _uiState.value.copy(activeProgram = value) }
+        repository.activeMode
+            .onEach { value -> _uiState.value = _uiState.value.copy(activeMode = value) }
             .launchIn(viewModelScope)
 
         if (!payloadBuilder.nativeAvailable) {
@@ -46,9 +46,9 @@ class ControlViewModel @Inject constructor(
         }
     }
 
-    fun select(program: VibrationProgram) {
+    fun select(mode: HapticMode) {
         if (!payloadBuilder.nativeAvailable) return
-        runProgram(program)
+        selectMode(mode)
     }
 
     fun powerOff() {

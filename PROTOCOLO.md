@@ -47,19 +47,25 @@ que el receptor espera. No modificar sin validar contra hardware.
 
 ## Comandos
 
+**Tabla definitiva, validada uno a uno contra la app original:**
+
 | Acción | Byte |
 |---|---|
 | Apagar | `0x00` |
-| Patrón 1–5 | `0x51` … `0x55` |
-| Intensidad 1–9 | `0x11` … `0x19` |
-| Intensidad 10 | `0x20` |
+| Continua baja / media / alta | `0x01` `0x02` `0x03` |
+| Ritmos 1–6 | `0x04` … `0x09` |
 
-El nivel 10 rompe la secuencia lineal: es `0x20`, no `0x1A`. Codificación tipo
-BCD, no un contador.
+Eso es todo el vocabulario. Un byte, diez valores. No hay eje de intensidad
+separado del de modo: siempre fue uno solo. Los ritmos los ejecuta el firmware.
 
-Los patrones **no son frecuencias en Hz**. Son índices; el ritmo lo decide el
-firmware. No existe parámetro continuo, por eso la UI no tiene slider de
-frecuencia.
+Descartado por el camino, para que nadie lo reintente:
+
+- `0x51`–`0x55` (de `sendQdOrSy`): el aparato los ignora, incluso encadenados
+  sobre un motor ya en marcha. Pertenecen a otra línea de producto del APK.
+- Familia `0xAA` (`getBleCommand55`, `getBleCommand3`): existe en el APK pero no
+  en este modelo. Las 43 tramas capturadas miden 11 bytes sin excepción, o sea
+  payload de un solo byte.
+- `0x11`–`0x19` / `0x20` (de `sendZl`): es la rama **GATT**, no la de difusión.
 
 ## Limitaciones que no se pueden resolver desde la app
 
@@ -77,3 +83,113 @@ entrada a la vez. Ejecutarlo una vez y revisar el logcat con el tag `RF_PROBE`.
 El bloque 4 (determinismo) es el crítico: si tres llamadas idénticas devuelven
 resultados distintos hay estado interno en el nativo —contador de secuencia o
 rotación de canal— y la estrategia de emisión cambia por completo.
+
+## Inversión del whitening (confirmado por captura HCI)
+
+`get_rf_payload` aplica whitening, así que el comando no es legible en el aire.
+Pero el whitening BLE es un XOR con un keystream que depende solo de la posición
+dentro del paquete, no del contenido. Con un par claro/cifrado conocido se
+recupera la clave de esa posición y se descifra cualquier captura.
+
+Trama de 11 bytes observada:
+
+```
+6D B6 43 CE 97 FE 42 7C | XX | CC CC
+└──── constante ────────┘   │   └ CRC
+                            └ comando ⊕ 0xE5
+```
+
+Los ocho primeros bytes son idénticos en todas las emisiones con el mismo
+prefijo. La posición 8 lleva el comando cifrado; las dos últimas varían con él.
+
+Clave obtenida anclando en nuestra propia emisión de `0x51`, que produjo `0xB4`:
+
+    K = 0x51 XOR 0xB4 = 0xE5
+
+Tabla decodificada de una rampa de intensidad capturada de la app original:
+
+| Aire | Claro | | Aire | Claro |
+|---|---|---|---|---|
+| `E5` | `0x00` (apagado) | | `E0` | `0x05` |
+| `E4` | `0x01` | | `E3` | `0x06` |
+| `E7` | `0x02` | | `E2` | `0x07` |
+| `E6` | `0x03` | | `ED` | `0x08` |
+| `E1` | `0x04` | | `EC` | `0x09` |
+
+Las diferencias entre tramas son consistentes entre sí sin usar el ancla, lo que
+valida la deducción de forma independiente.
+
+**Corrección importante:** la tabla `0x11`–`0x19` / `0x20` que aparece en
+`sendZl` corresponde a la rama **GATT**. La rama de difusión usa `0x01`–`0x0A`.
+
+## Nota sobre la captura en Xiaomi
+
+MIUI sobre Qualcomm no emite `0x2008` (LE Set Advertising Data). Envuelve los
+datos en el comando propietario **`0xFD54`**:
+
+```
+01 54 FD 22 | 02 16 | 02 01 02 | 0E FF FF 00 <11 bytes> | 03 03 8F AE
+             len=22   flags      manufacturer 0x00FF       UUID AE8F
+```
+
+Filtrar por `0x2008` en Wireshark no encuentra nada en estos teléfonos. Hay que
+buscar `0xFD54`, o directamente el patrón `03 03 8F AE`.
+
+Cada pulsación genera **una sola** trama `0xFD54`, no una cada 100 ms: los datos
+del anuncio no cambian mientras se mantiene pulsado, así que el stack solo los
+escribe una vez.
+
+## Inversión del whitening (confirmado por captura HCI)
+
+`get_rf_payload` aplica whitening, así que el comando no es legible en el aire.
+Pero el whitening BLE es un XOR con un keystream que depende solo de la posición
+dentro del paquete, no del contenido. Con un par claro/cifrado conocido se
+recupera la clave de esa posición y se descifra cualquier captura.
+
+Trama de 11 bytes observada:
+
+```
+6D B6 43 CE 97 FE 42 7C | XX | CC CC
+└──── constante ────────┘   │   └ CRC
+                            └ comando ⊕ 0xE5
+```
+
+Los ocho primeros bytes son idénticos en todas las emisiones con el mismo
+prefijo. La posición 8 lleva el comando cifrado; las dos últimas varían con él.
+
+Clave obtenida anclando en nuestra propia emisión de `0x51`, que produjo `0xB4`:
+
+    K = 0x51 XOR 0xB4 = 0xE5
+
+Tabla decodificada de una rampa de intensidad capturada de la app original:
+
+| Aire | Claro | | Aire | Claro |
+|---|---|---|---|---|
+| `E5` | `0x00` (apagado) | | `E0` | `0x05` |
+| `E4` | `0x01` | | `E3` | `0x06` |
+| `E7` | `0x02` | | `E2` | `0x07` |
+| `E6` | `0x03` | | `ED` | `0x08` |
+| `E1` | `0x04` | | `EC` | `0x09` |
+
+Las diferencias entre tramas son consistentes entre sí sin usar el ancla, lo que
+valida la deducción de forma independiente.
+
+**Corrección importante:** la tabla `0x11`–`0x19` / `0x20` que aparece en
+`sendZl` corresponde a la rama **GATT**. La rama de difusión usa `0x01`–`0x0A`.
+
+## Nota sobre la captura en Xiaomi
+
+MIUI sobre Qualcomm no emite `0x2008` (LE Set Advertising Data). Envuelve los
+datos en el comando propietario **`0xFD54`**:
+
+```
+01 54 FD 22 | 02 16 | 02 01 02 | 0E FF FF 00 <11 bytes> | 03 03 8F AE
+             len=22   flags      manufacturer 0x00FF       UUID AE8F
+```
+
+Filtrar por `0x2008` en Wireshark no encuentra nada en estos teléfonos. Hay que
+buscar `0xFD54`, o directamente el patrón `03 03 8F AE`.
+
+Cada pulsación genera **una sola** trama `0xFD54`, no una cada 100 ms: los datos
+del anuncio no cambian mientras se mantiene pulsado, así que el stack solo los
+escribe una vez.

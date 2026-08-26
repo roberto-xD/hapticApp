@@ -1,17 +1,16 @@
 package com.smartbe.hapticcontrol.presentation.control
 
-import com.smartbe.hapticcontrol.domain.model.VibrationProgram
+import com.smartbe.hapticcontrol.domain.model.HapticMode
 
 data class ControlUiState(
-    val programs: List<VibrationProgram> = VibrationProgram.CATALOG,
-    val activeProgram: VibrationProgram? = null,
+    val activeMode: HapticMode? = null,
     val isBroadcasting: Boolean = false,
     val nativeAvailable: Boolean = true,
     val error: String? = null
 ) {
-    val isOn: Boolean get() = activeProgram != null
+    val isOn: Boolean get() = activeMode != null
 
-    val steady: List<VibrationProgram> get() = programs.filterIsInstance<VibrationProgram.Steady>()
+    val continuous: List<HapticMode> get() = HapticMode.continuous
 
-    val rhythms: List<VibrationProgram> get() = programs.filterIsInstance<VibrationProgram.Rhythm>()
+    val rhythmic: List<HapticMode> get() = HapticMode.rhythmic
 }

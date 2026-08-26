@@ -1,31 +1,25 @@
 package com.smartbe.hapticcontrol.domain.repository
 
-import com.smartbe.hapticcontrol.domain.model.HapticCommand
-import com.smartbe.hapticcontrol.domain.model.VibrationProgram
+import com.smartbe.hapticcontrol.domain.model.HapticMode
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Contrato de emision.
+ * El receptor tiene watchdog: obedece mientras recibe y corta a los pocos
+ * segundos de silencio. Por eso esto no es "enviar un comando" sino "sostener
+ * un modo".
  *
- * El transporte es unidireccional por difusion y el receptor tiene watchdog:
- * obedece mientras recibe y corta a los pocos segundos de silencio. Por eso
- * esto no es una API de "enviar comando" sino de "mantener un programa".
- *
- * Un exito significa que la emision arranco, NO que el dispositivo la recibio.
+ * El enlace es unidireccional: que un modo quede seleccionado significa que lo
+ * estamos emitiendo, no que el dispositivo lo haya recibido.
  */
 interface HapticRepository {
 
     val isBroadcasting: StateFlow<Boolean>
 
-    /** Programa en curso, o null si esta detenido. */
-    val activeProgram: StateFlow<VibrationProgram?>
+    val activeMode: StateFlow<HapticMode?>
 
-    /** Arranca un programa y lo sostiene hasta stop() u otro run(). */
-    fun run(program: VibrationProgram)
+    /** Arranca un modo y lo sostiene hasta stop() u otro select(). */
+    fun select(mode: HapticMode)
 
-    /** Detiene la emision y manda el apagado explicito. */
+    /** Corta la emision y manda el apagado explicito. */
     suspend fun stop()
-
-    /** Emite un comando suelto. Util para diagnostico. */
-    suspend fun sendOnce(command: HapticCommand): Result<Unit>
 }
