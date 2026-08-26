@@ -6,22 +6,17 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.smartbe.hapticcontrol.presentation.control.ControlScreen
-import com.smartbe.hapticcontrol.presentation.scan.ScanScreen
-import com.smartbe.hapticcontrol.presentation.settings.SettingsScreen
-
 
 /**
- * Rutas de navegación de la aplicación
+ * Un solo destino.
+ *
+ * Las pantallas de escaneo y ajustes desaparecieron con la ruta GATT: estos
+ * dispositivos no se escanean ni se emparejan, solo escuchan.
  */
 sealed class Screen(val route: String) {
-    object Scan : Screen("scan")
-    object Control : Screen("control")
-    object Settings : Screen("settings")
+    data object Control : Screen("control")
 }
 
-/**
- * Grafo de navegación principal
- */
 @Composable
 fun NavGraph(
     navController: NavHostController,
@@ -29,34 +24,11 @@ fun NavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Scan.route,
+        startDestination = Screen.Control.route,
         modifier = modifier
     ) {
-        composable(Screen.Scan.route) {
-            ScanScreen(
-                onDeviceSelected = {
-
-                }
-            )
-        }
-
         composable(Screen.Control.route) {
-            ControlScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
-                }
-            )
-        }
-
-        composable(Screen.Settings.route) {
-            SettingsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            ControlScreen()
         }
     }
 }

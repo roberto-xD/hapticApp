@@ -40,7 +40,8 @@ roomKtx = "2.7.1"
 roomPaging = "2.7.1"
 roomTesting = "2.7.1"
 crashlytics = "3.0.3"
-ksp_version = "2.1.0-1.0.29"
+# KSP debe coincidir EXACTAMENTE con la version del compilador de Kotlin.
+ksp_version = "2.1.20-1.0.32"
 hiltPluginVersion = "2.56.1"
 turbine = "1.2.1"
 truth = "1.4.4"
@@ -73,6 +74,7 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltCompiler" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
@@ -120,6 +122,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 crashlytics = {id = "com.google.firebase.crashlytics", version.ref = "crashlytics"}
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp_version" }
 hiltPlugin = { id = "com.google.dagger.hilt.android", version.ref = "hiltPluginVersion" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 [bundles]
 testing = [

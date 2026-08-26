@@ -6,7 +6,9 @@ plugins {
     alias(libs.plugins.crashlytics)
     id ("kotlin-kapt")
     id ("dagger.hilt.android.plugin")
-    kotlin("plugin.serialization") version "1.9.20"
+    // La version del plugin de serialization DEBE seguir a la del compilador
+    // de Kotlin. Fijarla en 1.9.20 con Kotlin 2.1.20 aborta la configuracion.
+    alias(libs.plugins.kotlin.serialization)
 }
 android {
     namespace = "com.smartbe.hapticcontrol"
@@ -44,7 +46,18 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "2.1.20"
     }
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
+        }
+    }
+
     packaging {
+        jniLibs {
+            // libble24.so ya viene compilado del APK original. Si se comprime,
+            // System.loadLibrary falla en algunos dispositivos.
+            useLegacyPackaging = false
+        }
         resources {
             excludes += setOf(
                 "META-INF/DEPENDENCIES",
@@ -69,6 +82,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    // collectAsStateWithLifecycle() vive aqui, no en lifecycle-runtime-ktx
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)

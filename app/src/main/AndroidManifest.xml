@@ -2,15 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ========== PERMISOS DE UBICACIÓN ========== -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!--
+      Esta app solo EMITE anuncios BLE. No escanea ni se conecta a nada, asi que
+      no necesita BLUETOOTH_SCAN, BLUETOOTH_CONNECT ni permisos de ubicacion.
+      BLUETOOTH_ADVERTISE no se considera "derivable a ubicacion", por eso no
+      arrastra ACCESS_FINE_LOCATION como si lo hace el escaneo.
+    -->
 
-    <!-- PARA ANDROID 12+ (API 31+) -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
-    <!-- ========== BLUETOOTH PERMISSIONS ========== -->
-    <!-- Permisos legacy (Android 11 y anteriores) -->
+    <!-- Android 11 y anteriores -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
@@ -18,18 +17,9 @@
         android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
 
-    <!-- Permisos modernos (Android 12+) -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Android 12+ -->
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
-    <!-- Para Android 12+: reducir visibilidad de dispositivos Bluetooth -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-
-    <!-- Para Android 13+: permisos adicionales -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <!-- ========== HARDWARE FEATURES ========== -->
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />

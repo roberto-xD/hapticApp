@@ -124,21 +124,15 @@ class MainActivity : ComponentActivity() {
      * Obtiene lista de permisos según versión de Android
      */
     private fun getRequiredPermissions(): Array<String> {
+        // Solo emitimos anuncios: no escaneamos ni nos conectamos a nada.
+        // BLUETOOTH_SCAN, BLUETOOTH_CONNECT y ubicacion no hacen falta, y
+        // pedirlos sin usarlos es fricción gratuita para el usuario.
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+ (API 31+)
-            arrayOf(
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_ADVERTISE,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
+            arrayOf(Manifest.permission.BLUETOOTH_ADVERTISE)
         } else {
-            // Android 11 y anteriores
             arrayOf(
                 Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.BLUETOOTH_ADMIN
             )
         }
     }
