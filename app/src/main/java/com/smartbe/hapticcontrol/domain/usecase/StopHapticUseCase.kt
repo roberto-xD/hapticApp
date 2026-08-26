@@ -6,5 +6,5 @@ import javax.inject.Inject
 class StopHapticUseCase @Inject constructor(
     private val repository: HapticRepository
 ) {
-    suspend operator fun invoke(): Result<Unit> = repository.stop()
+    suspend operator fun invoke() = repository.stop()
 }

@@ -11,6 +11,7 @@ import android.os.ParcelUuid
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,15 +76,19 @@ class BroadcastAdvertiser @Inject constructor(
             ?.bluetoothLeAdvertiser
 
     /**
-     * Emite [payload] durante [durationMs] y despues corta.
+     * Emite [payload] y lo mantiene al aire hasta que se cancele la corrutina.
      *
-     * El dispositivo memoriza el estado, asi que una rafaga corta basta: no hay
-     * que mantener el anuncio mientras dure la vibracion.
+     * El receptor tiene watchdog: vibra mientras recibe y corta a los pocos
+     * segundos de silencio. Una rafaga corta NO sirve para modos sostenidos,
+     * hay que sostener el anuncio.
+     *
+     * @param durationMs  null = sostener indefinidamente (timeout 0 en el stack).
+     *                    Un valor concreto emite ese tiempo y corta.
      */
     @SuppressLint("MissingPermission")
-    suspend fun broadcast(
+    suspend fun emit(
         payload: ByteArray,
-        durationMs: Long = BURST_DURATION_MS
+        durationMs: Long? = null
     ): Result<Unit> = mutex.withLock {
         val adv = advertiser
             ?: return@withLock Result.failure(
@@ -93,9 +98,14 @@ class BroadcastAdvertiser @Inject constructor(
         stopInternal(adv)
 
         try {
-            awaitStart(adv, payload)
+            awaitStart(adv, payload, sustained = durationMs == null)
             _isBroadcasting.value = true
-            delay(durationMs)
+            if (durationMs == null) {
+                // Sostener hasta cancelacion externa.
+                awaitCancellation()
+            } else {
+                delay(durationMs)
+            }
             Result.success(Unit)
         } catch (cancel: CancellationException) {
             throw cancel
@@ -104,7 +114,7 @@ class BroadcastAdvertiser @Inject constructor(
             Result.failure(error)
         } finally {
             // NonCancellable: si cancelan la corrutina, el anuncio TIENE que
-            // pararse igual. Dejarlo al aire bloquea la siguiente rafaga.
+            // pararse igual. Dejarlo al aire bloquea la siguiente emision.
             withContext(NonCancellable) {
                 stopInternal(adv)
                 _isBroadcasting.value = false
@@ -115,7 +125,8 @@ class BroadcastAdvertiser @Inject constructor(
     @SuppressLint("MissingPermission")
     private suspend fun awaitStart(
         adv: BluetoothLeAdvertiser,
-        payload: ByteArray
+        payload: ByteArray,
+        sustained: Boolean
     ): Unit = suspendCancellableCoroutine { cont ->
 
         val callback = object : AdvertiseCallback() {
@@ -134,7 +145,7 @@ class BroadcastAdvertiser @Inject constructor(
         }
 
         runCatching {
-            adv.startAdvertising(buildSettings(), buildData(payload), callback)
+            adv.startAdvertising(buildSettings(sustained), buildData(payload), callback)
         }.onFailure { error ->
             if (cont.isActive) cont.resumeWithException(error)
         }
@@ -155,11 +166,14 @@ class BroadcastAdvertiser @Inject constructor(
      * pero cambia el tipo de PDU a ADV_IND y con ello la longitud de trama que
      * el receptor espera. No tocarlo sin validar contra hardware real.
      */
-    private fun buildSettings(): AdvertiseSettings =
+    private fun buildSettings(sustained: Boolean): AdvertiseSettings =
         AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
             .setConnectable(true)
-            .setTimeout(ADVERTISE_TIMEOUT_MS)
+            // timeout 0 = sin corte automatico. El maximo que acepta el stack
+            // son 180000 ms, asi que para sostener indefinidamente hay que
+            // pasar 0 y encargarse uno mismo de parar.
+            .setTimeout(if (sustained) 0 else ADVERTISE_TIMEOUT_MS)
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
             .build()
 
@@ -184,7 +198,7 @@ class BroadcastAdvertiser @Inject constructor(
 
         val SERVICE_UUID: UUID = UUID.fromString("0000ae8f-0000-1000-8000-00805f9b34fb")
 
-        /** Cuanto mantenemos la rafaga. El original usa 1000 ms. */
+        /** Duracion de un paso suelto cuando no se sostiene. */
         const val BURST_DURATION_MS = 1000L
 
         /** Corte de seguridad del propio stack, por si la corrutina muere. */

@@ -1,17 +1,16 @@
 package com.smartbe.hapticcontrol.presentation.control
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,12 +32,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.smartbe.hapticcontrol.domain.model.HapticCommand
+import com.smartbe.hapticcontrol.domain.model.VibrationProgram
 
 /**
  * Panel de control.
@@ -71,11 +69,12 @@ fun ControlScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Ground)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
         TransmitIndicator(
             isBroadcasting = state.isBroadcasting,
-            activeMode = state.activeMode
+            activeName = state.activeProgram?.displayName
         )
 
         state.error?.let { message ->
@@ -85,31 +84,37 @@ fun ControlScreen(
 
         Spacer(Modifier.height(32.dp))
 
-        SectionLabel("Patrón")
+        SectionLabel("Continua")
         Spacer(Modifier.height(12.dp))
-        ModeRow(
-            modes = state.modes,
-            activeMode = state.activeMode,
-            enabled = state.canInteract,
-            onSelect = viewModel::selectMode
-        )
+        state.steady.forEach { program ->
+            ProgramRow(
+                program = program,
+                isActive = program == state.activeProgram,
+                enabled = state.nativeAvailable,
+                onClick = { viewModel.select(program) }
+            )
+            Spacer(Modifier.height(8.dp))
+        }
 
-        Spacer(Modifier.height(36.dp))
+        Spacer(Modifier.height(24.dp))
 
-        SectionLabel("Intensidad")
+        SectionLabel("Ritmica")
         Spacer(Modifier.height(12.dp))
-        IntensityLadder(
-            range = state.intensityRange,
-            level = state.intensity,
-            enabled = state.canInteract,
-            onSelect = viewModel::setIntensity
-        )
+        state.rhythms.forEach { program ->
+            ProgramRow(
+                program = program,
+                isActive = program == state.activeProgram,
+                enabled = state.nativeAvailable,
+                onClick = { viewModel.select(program) }
+            )
+            Spacer(Modifier.height(8.dp))
+        }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(28.dp))
 
         Button(
             onClick = viewModel::powerOff,
-            enabled = state.canInteract,
+            enabled = state.nativeAvailable,
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (state.isOn) Halt else Panel,
@@ -126,8 +131,50 @@ fun ControlScreen(
     }
 }
 
+/**
+ * Fila de programa. El punto de la izquierda se enciende en el que esta activo.
+ */
 @Composable
-private fun TransmitIndicator(isBroadcasting: Boolean, activeMode: Int?) {
+private fun ProgramRow(
+    program: VibrationProgram,
+    isActive: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Panel)
+            .border(
+                width = 1.dp,
+                color = if (isActive) Signal else Edge,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .alpha(if (enabled) 1f else 0.45f)
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { contentDescription = program.displayName }
+            .padding(horizontal = 16.dp, vertical = 18.dp)
+    ) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(if (isActive) Signal else Edge)
+        )
+        Spacer(Modifier.size(14.dp))
+        Text(
+            text = program.displayName,
+            color = if (isActive) Signal else Color(0xFFC3CBD6),
+            fontSize = 15.sp,
+            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
+        )
+    }
+}
+
+@Composable
+private fun TransmitIndicator(isBroadcasting: Boolean, activeName: String?) {
     val dotColor by animateColorAsState(
         targetValue = if (isBroadcasting) Signal else Edge,
         animationSpec = tween(180),
@@ -150,7 +197,7 @@ private fun TransmitIndicator(isBroadcasting: Boolean, activeMode: Int?) {
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = activeMode?.let { "Patrón $it activo" } ?: "Sin patrón activo",
+                text = activeName ?: "Sin programa activo",
                 color = Muted,
                 fontSize = 12.sp
             )
@@ -167,88 +214,6 @@ private fun SectionLabel(text: String) {
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 1.5.sp
     )
-}
-
-@Composable
-private fun ModeRow(
-    modes: IntRange,
-    activeMode: Int?,
-    enabled: Boolean,
-    onSelect: (Int) -> Unit
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        modes.forEach { index ->
-            val isActive = index == activeMode
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(0.85f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isActive) Signal else Panel)
-                    .border(
-                        width = 1.dp,
-                        color = if (isActive) Signal else Edge,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .alpha(if (enabled) 1f else 0.45f)
-                    .clickable(enabled = enabled) { onSelect(index) }
-                    .semantics { contentDescription = "Patrón $index" },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "$index",
-                    color = if (isActive) Ground else Color(0xFFC3CBD6),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
-}
-
-/**
- * Escalera de peldanos discretos. Cada peldano es un valor real del firmware.
- */
-@Composable
-private fun IntensityLadder(
-    range: IntRange,
-    level: Int,
-    enabled: Boolean,
-    onSelect: (Int) -> Unit
-) {
-    Column {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            range.forEach { step ->
-                val filled = step <= level
-                val height by animateFloatAsState(
-                    targetValue = 28f + (step * 3.2f),
-                    animationSpec = tween(160),
-                    label = "rung$step"
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(height.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(if (filled) Signal else Panel)
-                        .alpha(if (enabled) 1f else 0.45f)
-                        .clickable(enabled = enabled) { onSelect(step) }
-                        .semantics { contentDescription = "Intensidad $step" }
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = "Nivel $level de ${HapticCommand.MAX_INTENSITY}",
-            color = Muted,
-            fontSize = 12.sp,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.End
-        )
-    }
 }
 
 @Composable
