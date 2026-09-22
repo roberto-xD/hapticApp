@@ -21,7 +21,7 @@ class ControlViewModel @Inject constructor(
     private val selectMode: SelectModeUseCase,
     private val stopHaptic: StopHapticUseCase,
     private val payloadBuilder: RfPayloadBuilder,
-    repository: HapticRepository
+    private val repository: HapticRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -32,6 +32,10 @@ class ControlViewModel @Inject constructor(
     init {
         repository.isBroadcasting
             .onEach { value -> _uiState.value = _uiState.value.copy(isBroadcasting = value) }
+            .launchIn(viewModelScope)
+
+        repository.isAudioReactive
+            .onEach { value -> _uiState.value = _uiState.value.copy(isAudioReactive = value) }
             .launchIn(viewModelScope)
 
         repository.activeMode
@@ -49,6 +53,15 @@ class ControlViewModel @Inject constructor(
     fun select(mode: HapticMode) {
         if (!payloadBuilder.nativeAvailable) return
         selectMode(mode)
+    }
+
+    fun toggleAudioReactive() {
+        if (!payloadBuilder.nativeAvailable) return
+        if (_uiState.value.isAudioReactive) {
+            powerOff()
+        } else {
+            repository.startAudioReactive()
+        }
     }
 
     fun powerOff() {

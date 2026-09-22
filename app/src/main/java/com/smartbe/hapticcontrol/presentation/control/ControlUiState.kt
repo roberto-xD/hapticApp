@@ -6,7 +6,8 @@ data class ControlUiState(
     val activeMode: HapticMode? = null,
     val isBroadcasting: Boolean = false,
     val nativeAvailable: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val isAudioReactive: Boolean = false
 ) {
     val isOn: Boolean get() = activeMode != null
 

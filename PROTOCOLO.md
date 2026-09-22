@@ -193,3 +193,35 @@ buscar `0xFD54`, o directamente el patrón `03 03 8F AE`.
 Cada pulsación genera **una sola** trama `0xFD54`, no una cada 100 ms: los datos
 del anuncio no cambian mientras se mantiene pulsado, así que el stack solo los
 escribe una vez.
+
+## Modo reactivo al sonido
+
+El aparato no tiene ningún comando de audio. El modo reactivo es entrada del
+teléfono alimentando los mismos nueve comandos, igual que los modos `music`,
+`shake` y `finger` de la app original: todos son fuentes distintas apuntando al
+mismo vocabulario de un byte.
+
+**Techo real: tres niveles, no nueve.** Solo `0x01`–`0x03` son intensidades
+continuas. Los `0x04`–`0x09` son ritmos con tempo propio; si el volumen los
+disparara, el firmware ejecutaría su patrón ignorando la música.
+
+Cadena de proceso en `AudioLevelSource`:
+
+1. `AudioRecord` a 16 kHz mono, ventanas de 80 ms
+2. RMS por ventana
+3. Ganancia adaptativa: suelo y techo se recalculan sobre ventana móvil, porque
+   un RMS crudo se queda clavado en el mínimo con música baja y en el máximo con
+   música alta
+4. Clasificación a 0–3 con puerta de ruido
+5. Histéresis asimétrica: subir inmediato, bajar tras 250 ms y de uno en uno
+
+La histéresis no es cosmética. Sin ella se oscila entre escalones adyacentes, y
+cada oscilación cuesta un stop/start del anuncio, que ronda las decenas de
+milisegundos. El techo práctico son 6–8 cambios por segundo.
+
+Se usa `AudioSource.UNPROCESSED` para evitar el control automático de ganancia y
+la supresión de ruido del sistema, que pelearían contra la normalización propia.
+
+En el repositorio, `collectLatest` hace el trabajo: cada nivel nuevo cancela la
+emisión anterior —suspendida sosteniendo el anuncio— y arranca la siguiente. Sin
+temporizadores ni estado adicional.

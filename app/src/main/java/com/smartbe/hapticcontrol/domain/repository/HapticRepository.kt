@@ -17,8 +17,19 @@ interface HapticRepository {
 
     val activeMode: StateFlow<HapticMode?>
 
+    /** True mientras el microfono gobierna la emision. */
+    val isAudioReactive: StateFlow<Boolean>
+
     /** Arranca un modo y lo sostiene hasta stop() u otro select(). */
     fun select(mode: HapticMode)
+
+    /**
+     * Cede el control al microfono. El modo activo pasa a cambiar solo entre
+     * las tres continuas segun el volumen.
+     *
+     * Requiere RECORD_AUDIO concedido; si falta, no emite nada.
+     */
+    fun startAudioReactive()
 
     /** Corta la emision y manda el apagado explicito. */
     suspend fun stop()

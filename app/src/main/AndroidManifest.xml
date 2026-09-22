@@ -20,6 +20,9 @@
     <!-- Android 12+ -->
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
+    <!-- Modo reactivo: solo se pide cuando el usuario activa el microfono -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />

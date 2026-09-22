@@ -1,5 +1,9 @@
 package com.smartbe.hapticcontrol.presentation.control
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -29,11 +33,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.smartbe.hapticcontrol.domain.model.HapticMode
@@ -64,6 +70,13 @@ fun ControlScreen(
     viewModel: ControlViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    val micLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) viewModel.toggleAudioReactive()
+    }
 
     Column(
         modifier = Modifier
@@ -104,6 +117,25 @@ fun ControlScreen(
             Spacer(Modifier.height(8.dp))
         }
 
+        Spacer(Modifier.height(24.dp))
+
+        SectionLabel("Reactivo")
+        Spacer(Modifier.height(12.dp))
+        AudioRow(
+            isActive = state.isAudioReactive,
+            enabled = state.nativeAvailable,
+            onToggle = {
+                if (ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    viewModel.toggleAudioReactive()
+                } else {
+                    micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            }
+        )
+
         Spacer(Modifier.height(28.dp))
 
         Button(
@@ -121,6 +153,55 @@ fun ControlScreen(
                 .height(64.dp)
         ) {
             Text("Apagar", fontSize = 17.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+/**
+ * El micro solo alcanza las tres continuas: los ritmos tienen tempo propio y no
+ * responderian al volumen. Conviene decirselo al usuario, no que lo deduzca.
+ */
+@Composable
+private fun AudioRow(
+    isActive: Boolean,
+    enabled: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Panel)
+            .border(
+                width = 1.dp,
+                color = if (isActive) Signal else Edge,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .alpha(if (enabled) 1f else 0.45f)
+            .clickable(enabled = enabled, onClick = onToggle)
+            .semantics { contentDescription = "Reactivo al sonido" }
+            .padding(horizontal = 16.dp, vertical = 18.dp)
+    ) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(if (isActive) Signal else Edge)
+        )
+        Spacer(Modifier.size(14.dp))
+        Column {
+            Text(
+                text = "Reactivo al sonido",
+                color = if (isActive) Signal else Color(0xFFC3CBD6),
+                fontSize = 15.sp,
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
+            )
+            Text(
+                text = "Micrófono, tres niveles",
+                color = Muted,
+                fontSize = 12.sp
+            )
         }
     }
 }
