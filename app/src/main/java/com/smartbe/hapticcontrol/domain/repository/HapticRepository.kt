@@ -1,6 +1,7 @@
 package com.smartbe.hapticcontrol.domain.repository
 
 import com.smartbe.hapticcontrol.domain.model.HapticMode
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -20,6 +21,14 @@ interface HapticRepository {
     /** True mientras el microfono gobierna la emision. */
     val isAudioReactive: StateFlow<Boolean>
 
+    /**
+     * Fallos de la fuente de audio, de uno en uno.
+     *
+     * No es StateFlow a proposito: el mismo mensaje repetido tiene que volver a
+     * llegar a la UI, y un StateFlow lo descartaria por ser igual al anterior.
+     */
+    val audioErrors: SharedFlow<String>
+
     /** Arranca un modo y lo sostiene hasta stop() u otro select(). */
     fun select(mode: HapticMode)
 
@@ -27,7 +36,8 @@ interface HapticRepository {
      * Cede el control al microfono. El modo activo pasa a cambiar solo entre
      * las tres continuas segun el volumen.
      *
-     * Requiere RECORD_AUDIO concedido; si falta, no emite nada.
+     * Requiere RECORD_AUDIO concedido; si falta, baja isAudioReactive y
+     * publica el motivo en audioErrors.
      */
     fun startAudioReactive()
 

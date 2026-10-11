@@ -5,7 +5,6 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Build
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +14,15 @@ import kotlinx.coroutines.isActive
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.sqrt
+
+/**
+ * El microfono no se pudo abrir.
+ *
+ * Se lanza en vez de terminar el flujo en silencio: un flujo que acaba sin
+ * emitir es indistinguible de una cancelacion normal, y quien colecciona no
+ * tiene forma de saber que el modo nunca arranco.
+ */
+class AudioCaptureException(message: String) : Exception(message)
 
 /**
  * Convierte el sonido del microfono en un nivel 0..3.
@@ -29,8 +37,7 @@ class AudioLevelSource @Inject constructor() {
 
     /**
      * Emite el nivel cuando cambia. Requiere permiso RECORD_AUDIO concedido
-     * antes de coleccionar; si falta, AudioRecord no inicializa y el flujo
-     * termina sin emitir.
+     * antes de coleccionar; si falta, lanza [AudioCaptureException].
      */
     @SuppressLint("MissingPermission")
     fun levels(): Flow<Int> = flow {
@@ -41,8 +48,9 @@ class AudioLevelSource @Inject constructor() {
             AudioFormat.ENCODING_PCM_16BIT
         )
         if (minBuffer <= 0) {
-            Log.e(TAG, "El dispositivo no soporta 16 kHz mono PCM16")
-            return@flow
+            throw AudioCaptureException(
+                "Este telefono no soporta captura a 16 kHz mono PCM16"
+            )
         }
 
         val record = AudioRecord(
@@ -54,9 +62,11 @@ class AudioLevelSource @Inject constructor() {
         )
 
         if (record.state != AudioRecord.STATE_INITIALIZED) {
-            Log.e(TAG, "AudioRecord no inicializo. ¿Falta el permiso RECORD_AUDIO?")
             record.release()
-            return@flow
+            throw AudioCaptureException(
+                "No se pudo abrir el microfono. Revisa el permiso o cierra la " +
+                        "app que lo este usando."
+            )
         }
 
         val buffer = ShortArray(windowSamples)
@@ -145,7 +155,6 @@ class AudioLevelSource @Inject constructor() {
         }
 
     companion object {
-        private const val TAG = "AudioLevelSource"
         private const val SAMPLE_RATE = 16_000
         private const val WINDOW_MS = 80
         private const val ADAPT = 0.02f

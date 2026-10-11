@@ -23,6 +23,15 @@
     <!-- Modo reactivo: solo se pide cuando el usuario activa el microfono -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!--
+      El servicio en primer plano no graba: existe para que el sistema no
+      silencie el microfono al minimizar la app. El permiso generico lo pide
+      Android 9+; el de tipo microfono, Android 14+. Declarar los dos sin
+      acotar version es inocuo en las anteriores.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
@@ -48,6 +57,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".data.audio.MicForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
     </application>
 
 </manifest>

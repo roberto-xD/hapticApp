@@ -225,3 +225,36 @@ la supresión de ruido del sistema, que pelearían contra la normalización prop
 En el repositorio, `collectLatest` hace el trabajo: cada nivel nuevo cancela la
 emisión anterior —suspendida sosteniendo el anuncio— y arranca la siguiente. Sin
 temporizadores ni estado adicional.
+
+El nivel 0 no sostiene `0x00`: emite la ráfaga de apagado de 1 s y deja la radio
+parada. Sostener el anuncio en silencio no le dice nada al aparato —el watchdog
+ya lo habría cortado— y mantiene la antena encendida sin motivo.
+
+### Por qué hace falta un servicio en primer plano
+
+Desde Android 9 el sistema silencia la captura en cuanto la app deja de estar
+visible, y lo hace de la peor manera: `AudioRecord` sigue devolviendo buffers,
+solo que llenos de ceros. El nivel se queda clavado en 0 y el modo parece
+colgado.
+
+`MicForegroundService` no graba nada; solo mantiene el proceso en un estado que
+conserva el acceso al micro.
+
+Su ciclo de vida sigue a `isAudioReactive`, no al job de emisión: un único
+colector traduce la bandera en `start`/`stop`. Atarlo al job abriría una
+carrera, porque el `finally` de una emisión ya cancelada puede ejecutarse
+después de que otra haya arrancado el servicio, y pararía el micrófono de la
+sesión nueva. Las tres salidas del modo —`stop()`, `select()` y el fallo de
+captura— bajan la bandera, así que las tres paran el servicio.
+
+Android 14+ exige además el permiso `FOREGROUND_SERVICE_MICROPHONE` y que el
+servicio se arranque con la app visible —de ahí que el modo reactivo solo se
+active con un toque en la UI.
+
+### Fallo de captura
+
+Si `AudioRecord` no inicializa —permiso revocado en caliente, otra app con el
+micro tomado, formato no soportado— `AudioLevelSource` lanza
+`AudioCaptureException` en vez de terminar el flujo en silencio. Un flujo que
+acaba sin emitir es indistinguible de una cancelación normal, y el toggle se
+quedaría encendido en la UI sin que pasara nada.

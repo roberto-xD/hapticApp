@@ -38,6 +38,10 @@ class ControlViewModel @Inject constructor(
             .onEach { value -> _uiState.value = _uiState.value.copy(isAudioReactive = value) }
             .launchIn(viewModelScope)
 
+        repository.audioErrors
+            .onEach { message -> _uiState.value = _uiState.value.copy(error = message) }
+            .launchIn(viewModelScope)
+
         repository.activeMode
             .onEach { value -> _uiState.value = _uiState.value.copy(activeMode = value) }
             .launchIn(viewModelScope)
